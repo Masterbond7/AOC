@@ -6,7 +6,6 @@ section .data
     path_len equ $ - path
 
 section .bss
-    output resb 144
     size resb 8
 
 section .text
@@ -22,9 +21,12 @@ _start:
     ; Get file status and size
     mov rax, 5           ; sys_fstat
     mov rdi, qword [rsp] ; Move the 64bit num from stack to RDI
-    mov rsi, output      ; Give pointer to output for the return value
+    sub rsp, 144         ; Move stack pointer 144 bits for return struct
+    mov rsi, rsp         ; Return structure to the stack
     syscall
-    mov rax, qword [output + 0x30] ; Get file size
+    mov rax, qword [rsp + 0x30] ; Get file size
+    mov [size], rax             ; Move size from rax to [size] var
+    add rsp, 144                ; Move the stack pointer back
 
     ; Close input file
     mov rax, 3 ; close(2)
