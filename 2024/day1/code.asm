@@ -4,6 +4,7 @@ section .data
     ; Path and length for input file
     path db "./input", 0x00
     path_len equ $ - path
+    newl db 0x0A
 
 section .bss
 
@@ -97,6 +98,32 @@ _start:
         jnz .make_lists
 
 
+    ; Loop through List A from input file and display
+    mov r12, 0; Set r12 (counter) to 0
+    .load_listA:
+        ; Calculate offset then read address
+        mov rax, 14       ; 14 bytes per line
+        mul r12           ; Multiply by line num being read
+        add rax, [rbp-24] ; Add address to offset
+
+        ; Print!
+        mov rdi, 1   ; stdout
+        mov rsi, rax ; Set address to write from
+        mov rdx, 5   ; 5 chars to print!
+        mov rax, 1   ; sys_write
+        syscall
+
+        ; Also print a newline
+        call func_newl
+
+        cmp rax, 0    ; If error (<0)
+        jl error_exit ; Jump to error_exit
+
+        ; Increment r12 counter and loop if < line count
+        inc r12
+        cmp r12, [rbp-32]
+        jl .load_listA
+
 
     ; Unload the input file and its memory
     mov rax, 11       ; sys_munmap
@@ -161,3 +188,15 @@ error_exit:
     neg rdi      ; Make it positive
     mov rax, 60  ; sys_exit
     syscall
+
+; Function to print a newline
+func_newl:
+    ; Also print a newline
+    mov rdi, 1        ; stdout
+    mov rsi, newl     ; Newline char
+    mov rdx, 1        ; 1 byte
+    mov rax, 1        ; sys_write
+    syscall
+
+    ; Return
+    ret
