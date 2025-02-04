@@ -1,0 +1,1 @@
+valgrind --tool=callgrind --callgrind-out-file=callgrind.out --dump-instr=yes --collect-jumps=yes ./code.elf

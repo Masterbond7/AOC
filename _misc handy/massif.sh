@@ -1,0 +1,1 @@
+valgrind --tool=massif --time-unit=i --stacks=yes --massif-out-file=massif.out --alloc-fn='sys_mmap()' ./code.elf

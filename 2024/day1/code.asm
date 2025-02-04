@@ -54,6 +54,17 @@ _start:
     mov [rsp], rax ; Move file pointer to stack
 
 
+    ; Calculate list size required (RAX)
+    mov rax, [rsp+8] ; Load file size into RAX
+    mov rdx, 0       ; Set RDX to 0
+    mov rbx, 14      ; 14 bytes per line
+    div rbx          ; Divide to calculate no. lines (/numbers)
+
+    mov rdx, 0 ; Set RDX to 0
+    mov rbx, 4 ; 4 bytes per number (11111-99999 so 32-bit)
+    mul rbx    ; Multiply to calculate bytes per list of numbers
+
+
     ; Unmap the memory for the input file
     mov rax, 11      ; sys_munmap
     mov rdi, [rsp]   ; Set addr to file pointer (from stack)
