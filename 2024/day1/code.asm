@@ -25,6 +25,7 @@ _start:
     push rax      ; Otherwise push file descriptor onto stack (rbp-8)
 
 
+
     ; Get file status and size
     mov rax, 5             ; sys_fstat
     mov rdi, qword [rbp-8] ; Copy the fd from stack to RDI
@@ -38,6 +39,7 @@ _start:
     mov qword rax, [rsp + 0x30] ; Otherwise, get file size
     add rsp, 136                ; Move the stack pointer back - 8 bytes (144-8)
     mov [rsp], rax              ; Move size from rax to stack (rbp-16)
+
 
 
     ; Map some memory and load the file!
@@ -57,6 +59,7 @@ _start:
     mov [rsp], rax ; Move file pointer to stack (rbp-24)
 
 
+
     ; Calculate no. lines and list size required (rbp-32,-40)
     mov rax, [rbp-16] ; Load file size into RAX
     mov rdx, 0        ; Set RDX to 0
@@ -68,6 +71,7 @@ _start:
     mov rbx, 4   ; 4 bytes per number (11111-99999 so 32-bit)
     mul rbx      ; Multiply to calculate bytes per list of numbers
     push rax     ; Push list size required to stack (rbp-40)
+
 
 
     ; Map memory to store the two lists of numbers and a 3rd list for sorting
@@ -93,6 +97,7 @@ _start:
         jnz .make_lists
 
 
+
     ; Unload the input file and its memory
     mov rax, 11       ; sys_munmap
     mov rdi, [rbp-24] ; Set addr to file pointer (from stack)
@@ -106,6 +111,7 @@ _start:
     mov qword [rbp-16], 0 ; Zero 8 bytes from stack (remove file size)
 
 
+
     ; Close input file
     mov rax, 3       ; sys_close
     mov rdi, [rbp-8] ; Get fd from stack for fd parameter
@@ -117,6 +123,7 @@ _start:
     mov qword [rbp-8], 0 ; Zero 8 bytes from stack (remove fd)
 
 
+
     ; Unload the three lists and remove their pointers
     mov rbx, 3
     mov r12, rbp
@@ -124,7 +131,7 @@ _start:
         ; Unload list at r12-48 (initially the same as rbp-48) and later lists
         mov rax, 11       ; sys_munmap
         mov rsi, [rbp-40] ; Set length to length of list
-        mov rdi, [r12-48] ; Set addr to List A addr
+        mov rdi, [r12-48] ; Set addr to List address
         syscall
 
         cmp rax, 0    ; If error (<0)
@@ -132,7 +139,7 @@ _start:
 
         mov qword [r12-48], 0 ; Zero 8 bytes from stack (remove list pointer)
 
-        ; Subtract 8 bytes from r12 to get to next list
+        ; Subtract 8 bytes from r12 to get to next list address
         sub r12, 8
 
         ; Decrement rbx counter and loop if >0
