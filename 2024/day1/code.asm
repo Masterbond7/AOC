@@ -24,7 +24,7 @@ _start:
 
     ; Get file status and size
     mov rax, 5           ; sys_fstat
-    mov rdi, qword [rsp] ; Move the fd from stack to RDI
+    mov rdi, qword [rsp] ; Copy the fd from stack to RDI
     sub rsp, 144         ; Allocate 144 bits on the stack for return struct
     mov rsi, rsp         ; Return structure to the stack
     syscall
@@ -37,8 +37,37 @@ _start:
     mov [rsp], rax              ; Move size from rax to stack
 
 
+    ; Map some memory and load the file!
+    mov rax, 9      ; sys_mmap
+    mov rdi, 0      ; Set address to 0 (let the computer choose)
+    mov rsi, [rsp]  ; Set the length to the file size (from stack)
+    mov rdx, 0x01   ; Set protection to PROT_READ
+    mov r10, 0x02   ; Set flags to MAP_PRIVATE
+    mov r8, [rsp+8] ; Set the fd (from stack)
+    mov r9, 0       ; Set the offset to 0
+    syscall
+
+    cmp rax, 0    ; If error (<0)
+    jl error_exit ; Jump to error_exit
+
+    sub rsp, 8     ; Allocate 8 bytes on stack
+    mov [rsp], rax ; Move file pointer to stack
+
+
+    ; Unmap the memory for the input file
+    mov rax, 11      ; sys_munmap
+    mov rdi, [rsp]   ; Set addr to file pointer (from stack)
+    mov rsi, [rsp+8] ; Set len to the file size (from stack)
+    syscall
+
+    cmp rax, 0    ; If error (<0)
+    jl error_exit ; Jump to error_exit
+
+    add rsp, 8 ; Free 8 bytes from stack (remove file pointer)
+
+
     ; Get rid of file size
-    add rsp, 8 ; Move back 8 bytes
+    add rsp, 8 ; Free 8 bytes from stack (remove file size)
 
 
     ; Close input file

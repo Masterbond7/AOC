@@ -1,13 +1,27 @@
-0: Free!
+Start:
+    Free!
 
-18: (0-7) File descriptor
+Open input file:
+    (0-7) File descriptor
 
-25:   (0-7) File descriptor
+Get file status and size:
+    (0-7) File descriptor
     (8-151) File status
 
-28:  (0-7) File descriptor
+    (0-7) File descriptor
     (8-15) File size (bytes)
 
-32: (0-7) File descriptor
+Map some memory and load the file:
+    (0-7) File descriptor
+    (8-15) File size (bytes)
+    (16-23) Pointer to file in memory
 
-35: Free again! :D
+Unmap the memory for the input file:
+    (0-7) File descriptor
+    (8-15) File size (bytes)
+
+Get rid of file size:
+    (0-7) File descriptor
+
+Close input file:
+    Free again! :D
