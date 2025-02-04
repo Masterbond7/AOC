@@ -35,9 +35,9 @@ _start:
     cmp rax, 0    ; If error (<0)
     jl error_exit ; Jump to error_exit
 
-    mov rax, qword [rsp + 0x30] ; Otherwise, get file size
+    mov qword rax, [rsp + 0x30] ; Otherwise, get file size
     add rsp, 136                ; Move the stack pointer back - 8 bytes (144-8)
-    mov [rsp], rax           ; Move size from rax to stack (rbp-16)
+    mov [rsp], rax              ; Move size from rax to stack (rbp-16)
 
 
     ; Map some memory and load the file!
@@ -57,18 +57,43 @@ _start:
     mov [rsp], rax ; Move file pointer to stack (rbp-24)
 
 
-    ; Calculate list size required (RAX)
+    ; Calculate no. lines and list size required (rbp-32,-40)
     mov rax, [rbp-16] ; Load file size into RAX
     mov rdx, 0        ; Set RDX to 0
     mov rbx, 14       ; 14 bytes per line
     div rbx           ; Divide to calculate no. lines (/numbers)
+    push rax          ; Push no. lines to stack (rbp-32)
 
-    mov rdx, 0 ; Set RDX to 0
-    mov rbx, 4 ; 4 bytes per number (11111-99999 so 32-bit)
-    mul rbx    ; Multiply to calculate bytes per list of numbers
+    mov rdx, 0   ; Set RDX to 0
+    mov rbx, 4   ; 4 bytes per number (11111-99999 so 32-bit)
+    mul rbx      ; Multiply to calculate bytes per list of numbers
+    push rax     ; Push list size required to stack (rbp-40)
 
 
-    ; Unmap the memory for the input file
+    ; Map memory to store the two lists of numbers and a 3rd list for sorting
+    mov rbx, 3
+    .make_lists:
+        ; Reserve memory and add address to stack
+        mov rax, 9         ; sys_mmap
+        mov rdi, 0         ; Set address to 0 (let the computer choose)
+        mov rsi, [rbp-40]  ; Set the length to required no. of bytes for list
+        mov rdx, 0x03      ; Set protection to PROT_READ | PROT_WRITE
+        mov r10, 0x22      ; Set flags to MAP_PRIVATE | MAP_ANONYMOUS
+        mov r8, -1         ; Set fd to -1 (required as no file)
+        mov r9, 0          ; Set offset to 0 (required as no file)
+        syscall
+
+        cmp rax, 0    ; If error (<0)
+        jl error_exit ; Jump to error_exit
+        push rax      ; Otherwise push pointer to stack (rbp-48,-56,-64)
+
+        ; Decrement rbx counter and loop if >0
+        dec rbx
+        cmp rbx, 0
+        jnz .make_lists
+
+
+    ; Unload the input file and its memory
     mov rax, 11       ; sys_munmap
     mov rdi, [rbp-24] ; Set addr to file pointer (from stack)
     mov rsi, [rbp-16] ; Set len to the file size (from stack)
@@ -77,21 +102,44 @@ _start:
     cmp rax, 0    ; If error (<0)
     jl error_exit ; Jump to error_exit
 
-    add rsp, 8 ; Free 8 bytes from stack (remove file pointer)
-
-
-    ; Get rid of file size
-    add rsp, 8 ; Free 8 bytes from stack (remove file size)
+    mov qword [rbp-24], 0 ; Zero 8 bytes from stack (remove file pointer)
+    mov qword [rbp-16], 0 ; Zero 8 bytes from stack (remove file size)
 
 
     ; Close input file
-    mov rax, 3 ; sys_close
-    pop rdi    ; Pop fd from stack into fd parameter
+    mov rax, 3       ; sys_close
+    mov rdi, [rbp-8] ; Get fd from stack for fd parameter
     syscall
 
     cmp rax, 0    ; If error (<0)
     jl error_exit ; Jump to error_exit
 
+    mov qword [rbp-8], 0 ; Zero 8 bytes from stack (remove fd)
+
+
+    ; Unload the three lists and remove their pointers
+    mov rbx, 3
+    mov r12, rbp
+    .unmake_lists:
+        ; Unload list at r12-48 (initially the same as rbp-48) and later lists
+        mov rax, 11       ; sys_munmap
+        mov rsi, [rbp-40] ; Set length to length of list
+        mov rdi, [r12-48] ; Set addr to List A addr
+        syscall
+
+        cmp rax, 0    ; If error (<0)
+        jl error_exit ; Jump to error_exit
+
+        mov qword [r12-48], 0 ; Zero 8 bytes from stack (remove list pointer)
+
+        ; Subtract 8 bytes from r12 to get to next list
+        sub r12, 8
+
+        ; Decrement rbx counter and loop if >0
+        dec rbx
+        cmp rbx, 0
+        jnz .unmake_lists
+    add rsp, 24 ; 24 bytes were freed!
 
     ; Exit program
     mov rax, 60
@@ -99,6 +147,7 @@ _start:
     syscall
 
 
+; Function to exit with error code if there is a problem
 error_exit:
     ; Exit with errno code
     mov rdi, rax ; Move return (error) value to rdi

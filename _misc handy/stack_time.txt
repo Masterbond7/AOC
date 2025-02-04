@@ -16,12 +16,34 @@ Map some memory and load the file:
     (8-15) File size (bytes)
     (16-23) Pointer to file in memory
 
-Unmap the memory for the input file:
+Map memory to store the two lists of numbers and a 3rd list for sorting:
     (0-7) File descriptor
     (8-15) File size (bytes)
+    (16-23) Pointer to file in memory
+    (24-31) No. lines
+    (32-39) Required list size (bytes)
+    (40-47) List A
+    (48-55) List B
+    (56-63) List for sorting
 
-Get rid of file size:
+Unload the input file:
     (0-7) File descriptor
+    (8-23) FREE!!!
+    (24-31) No. lines
+    (32-39) Required list size (bytes)
+    (40-47) List A
+    (48-55) List B
+    (56-63) List for sorting
 
 Close input file:
-    Free again! :D
+    (0-23) FREE!!!
+    (24-31) No. lines
+    (32-39) Required list size (bytes)
+    (40-47) List A
+    (48-55) List B
+    (56-63) List for sorting
+
+Unload the three lists and remove their pointers:
+    (0-23) FREE!!!
+    (24-31) No. lines
+    (32-39) Required list size (bytes)
