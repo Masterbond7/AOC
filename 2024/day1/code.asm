@@ -6,7 +6,6 @@ section .data
     path_len equ $ - path
 
 section .bss
-    size resb 8
 
 section .text
 ; Main function
@@ -25,8 +24,11 @@ _start:
     mov rsi, rsp         ; Return structure to the stack
     syscall
     mov rax, qword [rsp + 0x30] ; Get file size
-    mov [size], rax             ; Move size from rax to [size] var
-    add rsp, 144                ; Move the stack pointer back
+    add rsp, 136                ; Move the stack pointer back - 8 bytes (144-8)
+    mov [rsp], rax             ; Move size from rax to [size] var
+
+    ; Get rid of file size
+    add rsp, 8 ; Move back 8 bytes
 
     ; Close input file
     mov rax, 3 ; close(2)

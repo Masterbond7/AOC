@@ -1,0 +1,13 @@
+0: Free!
+
+18: (0-7) File descriptor
+
+25:   (0-7) File descriptor
+    (8-151) File status
+
+28:  (0-7) File descriptor
+    (8-15) File size (bytes)
+
+32: (0-7) File descriptor
+
+35: Free again! :D
