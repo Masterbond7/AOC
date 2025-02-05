@@ -37,7 +37,7 @@ _start:
     cmp rax, 0    ; If error (<0)
     jl error_exit ; Jump to error_exit
 
-    mov qword rax, [rsp + 0x30] ; Otherwise, get file size
+    mov rax, qword [rsp + 0x30] ; Otherwise, get file size
     add rsp, 136                ; Move the stack pointer back - 8 bytes (144-8)
     mov [rsp], rax              ; Move size from rax to stack (rbp-16)
 
@@ -106,24 +106,22 @@ _start:
         mul r12           ; Multiply by line num being read
         add rax, [rbp-24] ; Add address to offset
 
-        ; Print!
-        mov rdi, 1   ; stdout
-        mov rsi, rax ; Set address to write from
-        mov rdx, 5   ; 5 chars to print!
-        mov rax, 1   ; sys_write
-        syscall
+        ; Convert ascii at ADDR (->RDI) to integer (RAX->)
+        mov rdi, rax ; Set address to read
+        call ascii_to_int
+        mov r10, rax ; Temp store output in r10
 
-        ; Also print a newline
-        call func_newl
-
-        cmp rax, 0    ; If error (<0)
-        jl error_exit ; Jump to error_exit
+        ; Calculate offset and write to List A
+        mov rax, 4            ; 4 bytes per number
+        mul r12               ; Multiply by line num
+        add rax, [rbp-48]     ; Add address to offset
+        mov dword [rax], r10d ; Move 4 byte result to address
 
         ; Increment r12 counter and loop if < line count
         inc r12
         cmp r12, [rbp-32]
         jl .load_listA
-
+    
 
     ; Unload the input file and its memory
     mov rax, 11       ; sys_munmap
@@ -189,6 +187,7 @@ error_exit:
     mov rax, 60  ; sys_exit
     syscall
 
+
 ; Function to print a newline
 func_newl:
     ; Also print a newline
@@ -200,3 +199,29 @@ func_newl:
 
     ; Return
     ret
+; Function to convert text at ADDR (->RDI) to integer (RAX->)
+ascii_to_int:
+    ; Init vars
+    mov rax, 0 ; Set result to 0
+    mov r10, 0 ; Set offset counter to 0
+
+    .loop:
+        ; Load char and check if number
+        movzx r11, byte [rdi+r10] ; Load address+offset
+        cmp r11, 0x30 ; If less than '0'
+        jb .exit      ; Jump to .exit
+        cmp r11, 0x39 ; If greater than '9'
+        jg .exit      ; Jump to .exit
+
+        ; Increment offset counter
+        inc r10
+
+        ; Convert char to int and add to result
+        sub r11, 0x30 ; Char - '0'
+        imul rax, 10  ; Multiply current result by 10
+        add rax, r11  ; Add new number to result
+        jmp .loop     ; Loop until non-number char found
+
+    ; Return to main code
+    .exit:
+        ret
