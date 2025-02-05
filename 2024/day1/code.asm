@@ -154,6 +154,10 @@ _start:
     mov rsi, [rbp-40] ; List length
     call insertion_sort
 
+    mov rdi, [rbp-56] ; List A
+    mov rsi, [rbp-40] ; List length
+    call insertion_sort
+
 
     ; Unload the input file and its memory
     mov rax, 11       ; sys_munmap
