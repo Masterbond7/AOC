@@ -121,7 +121,39 @@ _start:
         inc r12
         cmp r12, [rbp-32]
         jl .load_listA
+
+
+    ; Loop through List B from input file and display
+    mov r12, 0; Set r12 (counter) to 0
+    .load_listB:
+        ; Calculate offset then read address
+        mov rax, 14       ; 14 bytes per line
+        mul r12           ; Multiply by line num being read
+        add rax, 8        ; Offset to start read at 8th char of line (2nd num)
+        add rax, [rbp-24] ; Add address to offset
+
+        ; Convert ascii at ADDR (->RDI) to integer (RAX->)
+        mov rdi, rax ; Set address to read
+        call ascii_to_int
+        mov r10, rax ; Temp store output in r10
+
+        ; Calculate offset and write to List B
+        mov rax, 4            ; 4 bytes per number
+        mul r12               ; Multiply by line num
+        add rax, [rbp-56]     ; Add address to offset
+        mov dword [rax], r10d ; Move 4 byte result to address
+
+        ; Increment r12 counter and loop if < line count
+        inc r12
+        cmp r12, [rbp-32]
+        jl .load_listB
     
+
+    ; Sort list at ADDR (->RDI) of length (->RSI)
+    mov rdi, [rbp-48] ; List A
+    mov rsi, [rbp-40] ; List length
+    call insertion_sort
+
 
     ; Unload the input file and its memory
     mov rax, 11       ; sys_munmap
@@ -177,6 +209,39 @@ _start:
     mov rax, 60
     mov rdi, 0
     syscall
+
+
+; Sort list at ADDR (->RDI) of length (->RSI)
+insertion_sort:
+    mov r10, 0 ; Set sorted index to 0
+    sub rsi, 4 ;
+
+    .sort_i:
+        add r10, 4 ; Go to sort the next item
+        mov r8, r10 ; keep track of where we are pointing
+
+        .insert_check:
+            mov eax, dword[rdi+r8]   ; Load item to sort into rax
+            cmp eax, dword[rdi+r8-4] ; Compare with previous item
+            jb .swap                  ; If needed, swap
+            jmp .loop                 ; otherwise, loop
+
+        .swap:
+            mov r11d, dword [rdi+r8-4] ; Store higher value temp
+            mov [rdi+r8-4], eax          ; Put lower value in place
+            mov [rdi+r8], r11d       ; Put higher value in place
+            
+            sub r8, 4; move 4 back and check again (if not too far)
+            cmp r8, rsi
+            jb .insert_check
+
+        .loop:
+            ; Looping conditions
+            cmp r10, rsi ; Compare sorted index to length of array
+            jb .sort_i   ; Loop until end of array
+
+        ; Once array is sorted, returm
+        ret
 
 
 ; Function to exit with error code if there is a problem
