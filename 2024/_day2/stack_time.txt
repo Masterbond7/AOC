@@ -1,2 +1,19 @@
-Start:
-    Free!
+Open input file:
+    (0-7) File descriptor
+
+Get file status (for size):
+    (0-7) File descriptor
+    (8-15) File size (in bytes)
+
+Map some memory and load the file:
+    (0-7) File descriptor
+    (8-15) File size (in bytes)
+    (16-23) Pointer to the file in memory
+
+Unmap the memory for the input file:
+    (0-7) File descriptor
+    (8-15) File size (in bytes)
+
+Close the input file:
+    (0-7) FREE
+    (8-15) File size (in bytes)
