@@ -9,6 +9,8 @@ section .data
     ; Strings for printing
     text_distance db "Total distance between lists: ", 0x00
     text_distance_len equ $ - text_distance
+    text_similarity db "Similarity score: ", 0x00
+    text_similarity_len equ $ - text_similarity
 
 section .bss
 
@@ -205,6 +207,58 @@ _start:
     jl error_exit ; Jump to error_exit
 
     mov rdi, r12   ; Number to print
+    call print_int
+
+
+    ; Loop through List A and loop though List B to calculate similarity
+    mov r15, 0        ; Zero the final output
+    mov r12, [rbp-48] ; Load &A[0] into r12
+    mov r13, [rbp-56] ; Load &B[0] into r13
+    mov r10, 0        ; List A index
+    .sim_a_loop:
+        mov r14, 0         ; Zero the count for this A[i]
+        mov r11, 0         ; List B index
+        mov eax, dword[r12+r10] ; Load A[i] into RAX
+        
+        ; Looping through list B
+        .sim_b_loop:
+            mov ebx, dword[r13+r11]
+            cmp eax, ebx ; Compare with B[i]
+
+            jg .sim_b_loop_great ; If more than B[i] then go to next B[i]
+            je .sim_b_loop_equal ; If equal to B[i] add to count and go next
+            jb .sim_b_loop_below ; If below, go to next A[i]
+
+            .sim_b_loop_equal:
+            inc r14 ; Add to count of how many times for this A[i]
+
+            .sim_b_loop_great:
+            add r11, 4        ; Move 4 bytes along B
+            cmp r11, [rbp-40] ; Loop if not end of list
+            jb .sim_b_loop
+        
+        .sim_b_loop_below:
+        mov rdx, 0   ; Zero RDX
+        mul r14      ; Multiply RAX by count to calculate result for this A[i]
+        add r15, rax ; Add to final output
+
+        add r10, 4        ; Move 4 bytes along A
+        cmp r10, [rbp-40] ; Loop if not end of list
+        jb .sim_a_loop
+
+
+
+    ; Print similarity score
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, text_similarity
+    mov rdx, text_similarity_len
+    syscall
+
+    cmp rax, 0    ; If error (<0)
+    jl error_exit ; Jump to error_exit
+
+    mov rdi, r15
     call print_int
 
 
