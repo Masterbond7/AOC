@@ -160,8 +160,27 @@ _start:
 
 
     ; Loop through the lists get diff between A[i] and B[i], store sum in RAX
+    mov rax, 0 ; Cumulative output goes here
+    mov rbx, 0 ; Loop counter
+    mov r10, [rbp-48] ; Load &A[0] into r10
+    mov r11, [rbp-56] ; Load &B[0] into r11
+    .diff_ab_loop:
+        mov r12d, dword [r10+rbx] ; Load A[i] into r12
+        sub r12d, dword [r11+rbx] ; Subtract B[i]
+        cmp r12d, 0
+        jl .diff_ab_loop_inv    ; If negative, invert
+        jmp .diff_ab_loop_noinv ; Otherwise don't
 
+        .diff_ab_loop_inv:
+            neg r12d ; Invert r12
+        .diff_ab_loop_noinv:
+        ; Now add to cumulative output
+        add rax, r12 ; Should be good as long as r12 is positive
 
+        ; Looping conditions
+        add rbx, 4        ; Move along 4 bytes
+        cmp rbx, [rbp-40] ; Check if end of list
+        jb .diff_ab_loop  ; If not end, loop, otherwise continue
 
     ; Unload the input file and its memory
     mov rax, 11       ; sys_munmap
@@ -240,8 +259,8 @@ insertion_sort:
             mov [rdi+r8], r11d       ; Put higher value in place
             
             sub r8, 4; move 4 back and check again (if not too far)
-            cmp r8, rsi
-            jb .insert_check
+            cmp r8, 0
+            jg .insert_check
 
         .loop:
             ; Looping conditions
