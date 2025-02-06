@@ -6,6 +6,10 @@ section .data
     path_len equ $ - path
     newl db 0x0A
 
+    ; Strings for printing
+    text_distance db "Total distance between lists: ", 0x00
+    text_distance_len equ $ - text_distance
+
 section .bss
 
 section .text
@@ -13,6 +17,7 @@ section .text
 _start:
     ; Init rbp
     mov rbp, rsp
+
 
     ; Open input file
     mov rax, 2    ; sys_open
@@ -98,7 +103,8 @@ _start:
         jnz .make_lists
 
 
-    ; Loop through List A from input file and display
+
+    ; Loop through List A from input file and load
     mov r12, 0; Set r12 (counter) to 0
     .load_listA:
         ; Calculate offset then read address
@@ -123,7 +129,8 @@ _start:
         jl .load_listA
 
 
-    ; Loop through List B from input file and display
+
+    ; Loop through List B from input file and load
     mov r12, 0; Set r12 (counter) to 0
     .load_listB:
         ; Calculate offset then read address
@@ -149,6 +156,7 @@ _start:
         jl .load_listB
     
 
+
     ; Sort lists A & B at ADDR (->RDI) of length (->RSI)
     mov rdi, [rbp-48] ; List A
     mov rsi, [rbp-40] ; List length
@@ -159,7 +167,8 @@ _start:
     call insertion_sort
 
 
-    ; Loop through the lists get diff between A[i] and B[i], store sum in RAX
+
+    ; Loop through the lists get diff between A[i] and B[i], store sum in R12
     mov rax, 0 ; Cumulative output goes here
     mov rbx, 0 ; Loop counter
     mov r10, [rbp-48] ; Load &A[0] into r10
@@ -181,6 +190,24 @@ _start:
         add rbx, 4        ; Move along 4 bytes
         cmp rbx, [rbp-40] ; Check if end of list
         jb .diff_ab_loop  ; If not end, loop, otherwise continue
+    mov r12, rax ; Store result in r12 temporarily
+
+
+
+    ; Print distance between lists
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, text_distance
+    mov rdx, text_distance_len
+    syscall
+
+    cmp rax, 0    ; If error (<0)
+    jl error_exit ; Jump to error_exit
+
+    mov rdi, r12   ; Number to print
+    call print_int
+
+
 
     ; Unload the input file and its memory
     mov rax, 11       ; sys_munmap
@@ -231,6 +258,8 @@ _start:
         cmp rbx, 0
         jnz .unmake_lists
     add rsp, 16 ; 16 bytes were freed!
+
+
 
     ; Exit program
     mov rax, 60
@@ -317,3 +346,64 @@ ascii_to_int:
     ; Return to main code
     .exit:
         ret
+
+
+; Function to print an int (->RDI)
+print_int:
+    ; 24 bytes on stack! 20 for int, 1 for 0x00, 3 for padding
+    sub rsp, 24 
+    mov [rsp], byte 0x31
+    
+    ; Zero output area
+    mov r10, 0
+    .zero_loop:
+        ; Zero the bytes
+        mov [rsp+r10], byte 0x00
+
+        ; Increment counter and loop if not done
+        inc r10
+        cmp r10, 24
+        jl .zero_loop
+    
+    ; Now r10 is at the end of the allocated memory, start filling backwards
+    dec r10
+    mov [rsp+r10], byte 0x00 ; Null
+    dec r10
+    mov [rsp+r10], byte 0x0A ; Newline
+    dec r10
+
+    ; Set number to divide by
+    mov rbx, 10
+
+    ; Do the numbers!
+    .num_loop:
+        ; Get digit
+        mov rdx, 0   ; Zero RDX
+        mov rax, rdi ; Set RAX to the number
+        div rbx      ; Divide by 10 so first digit->RDX, rest->RAX
+        mov rdi, rax ; Update RDI
+
+        ; Add '0' to digit value
+        add rdx, 0x30
+
+        ; Add to output string and decrement counter
+        mov [rsp+r10], byte dl
+        dec r10
+
+        ; If remainder >0, loop, otherwise continue
+        cmp rax, 0
+        jnz .num_loop
+
+    ; Print
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, rsp
+    mov rdx, 24
+    syscall
+
+    cmp rax, 0    ; If error (<0)
+    jl error_exit ; Jump to error_exit
+
+    ; Return stack to orignal place and return
+    add rsp, 24
+    ret
