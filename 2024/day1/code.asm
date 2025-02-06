@@ -75,8 +75,8 @@ _start:
 
 
 
-    ; Map memory to store the two lists of numbers and a 3rd list for sorting
-    mov rbx, 3
+    ; Map memory to store the two lists of numbers
+    mov rbx, 2
     .make_lists:
         ; Reserve memory and add address to stack
         mov rax, 9         ; sys_mmap
@@ -90,7 +90,7 @@ _start:
 
         cmp rax, 0    ; If error (<0)
         jl error_exit ; Jump to error_exit
-        push rax      ; Otherwise push pointer to stack (rbp-48,-56,-64)
+        push rax      ; Otherwise push pointer to stack (rbp-48,-56)
 
         ; Decrement rbx counter and loop if >0
         dec rbx
@@ -149,14 +149,18 @@ _start:
         jl .load_listB
     
 
-    ; Sort list at ADDR (->RDI) of length (->RSI)
+    ; Sort lists A & B at ADDR (->RDI) of length (->RSI)
     mov rdi, [rbp-48] ; List A
     mov rsi, [rbp-40] ; List length
     call insertion_sort
 
-    mov rdi, [rbp-56] ; List A
+    mov rdi, [rbp-56] ; List B
     mov rsi, [rbp-40] ; List length
     call insertion_sort
+
+
+    ; Loop through the lists get diff between A[i] and B[i], store sum in RAX
+
 
 
     ; Unload the input file and its memory
@@ -185,8 +189,8 @@ _start:
 
 
 
-    ; Unload the three lists and remove their pointers
-    mov rbx, 3
+    ; Unload the two lists and remove their pointers
+    mov rbx, 2
     mov r12, rbp
     .unmake_lists:
         ; Unload list at r12-48 (initially the same as rbp-48) and later lists
@@ -207,7 +211,7 @@ _start:
         dec rbx
         cmp rbx, 0
         jnz .unmake_lists
-    add rsp, 24 ; 24 bytes were freed!
+    add rsp, 16 ; 16 bytes were freed!
 
     ; Exit program
     mov rax, 60

@@ -16,7 +16,7 @@ Map some memory and load the file:
     (8-15) File size (bytes)
     (16-23) Pointer to file in memory
 
-Map memory to store the two lists of numbers and a 3rd list for sorting:
+Map memory to store the two lists of numbers and a 3rd list for maths out:
     (0-7) File descriptor
     (8-15) File size (bytes)
     (16-23) Pointer to file in memory
@@ -24,7 +24,6 @@ Map memory to store the two lists of numbers and a 3rd list for sorting:
     (32-39) Required list size (bytes)
     (40-47) List A
     (48-55) List B
-    (56-63) List for sorting
 
 Unload the input file:
     (0-7) File descriptor
@@ -33,7 +32,6 @@ Unload the input file:
     (32-39) Required list size (bytes)
     (40-47) List A
     (48-55) List B
-    (56-63) List for sorting
 
 Close input file:
     (0-23) FREE!!!
@@ -41,7 +39,6 @@ Close input file:
     (32-39) Required list size (bytes)
     (40-47) List A
     (48-55) List B
-    (56-63) List for sorting
 
 Unload the three lists and remove their pointers:
     (0-23) FREE!!!
