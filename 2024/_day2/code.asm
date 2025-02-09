@@ -96,10 +96,11 @@ _start:
             jmp .read_line_loop       ; Continue reading line
 
             .read_line_loop_space:
-            inc r12                   ; Increment line contents index
+            inc r12             ; Increment line contents index
             jmp .read_line_loop ; Continue reading line
 
             .read_line_loop_newl:
+            ; The line has been read into [rbp-56], processing time!
             ; Do stuff like print line contents
             mov rax, 1
             mov rdi, 1
@@ -109,12 +110,14 @@ _start:
             mov rdx, 8
             syscall
 
-            mov r10, [rbp-48]
-            mov r11, [rbp-16]
-            cmp r10, r11 ; If offset is less than file size
-            jb .read_file_loop     ; Read next line, otherwise, continue
 
-    
+
+            ; Conditions to go to process the next line
+            mov r10, [rbp-48]  ; Move offset to R10
+            mov r11, [rbp-16]  ; Move file size to R11
+            cmp r10, r11       ; If offset is less than file size then
+            jb .read_file_loop ; Read the next line, otherwise continue
+
 
 
     ; Unmap the memory for the input file

@@ -18,6 +18,7 @@ Loop through file:
     (32-39) # of unsafe reports
     (40-47) Reading offset
     (48-55) Line contents (8 nums)
+    // DO NOT USE R12
 
 Unmap the memory for the input file: // rsp brought back 8 bytes as of now
     (0-7) File descriptor
