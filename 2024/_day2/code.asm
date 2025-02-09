@@ -3,6 +3,8 @@ global _start
 section .data
     path db "./input.txt", 0x00
     path_len equ $-path
+    false db 0
+    true db 1
 
 section .text
 ; Main function
@@ -99,16 +101,65 @@ _start:
             inc r12             ; Increment line contents index
             jmp .read_line_loop ; Continue reading line
 
-            .read_line_loop_newl:
             ; The line has been read into [rbp-56], processing time!
-            ; Do stuff like print line contents
-            mov rax, 1
-            mov rdi, 1
-            mov rbx, rbp
-            sub rbx, 56 ;56 is line contents; 48 is reading offset
-            mov rsi, rbx
-            mov rdx, 8
-            syscall
+            .read_line_loop_newl: 
+            mov r13, 1 ; Set checking index to 1 to start (cmp 0 & 1)
+
+            ; Calculate increasing/decreasing
+            mov r10, [rbp-56]   ; 1st
+            mov r11, [rbp-56+1] ; 2nd
+            sub r11, r10        ; If + then inc, if - then dec
+            cmp r11, 0
+            cmovl r14, [false] ; Decreasing = 0
+            cmovg r14, [true]  ; Increasing = 1
+
+            .check_line_loop:
+                ; If no numbers left to check, pass (end of list)
+                cmp r13, 8
+                je .line_pass
+                
+                mov r11, [rbp-56+r13]   ; [rbp-56] + index (what we're checking)
+                mov r10, [rbp-56+r13-1] ; [rbp-56] + index - 1 (the one before)
+                sub r11, r10 ; R11 = New - Old
+
+                ; If no numbers left to check, pass (item is 0x00; no more data)
+                cmp r11, 0
+                je .line_pass
+
+                ; Increment checking index
+                inc r13
+
+                ; Call the appropriate function for if decreasing/increasing
+                cmp r14, 0
+                jz .contition_decreasing
+                jnz .condition_increasing
+
+                ; Check if numbers are decreasing
+                .contition_decreasing: ; TODO: Fail logic
+                    jmp .check_line_loop
+                
+                ; Check if numbers are increasing
+                .condition_increasing: ; TODO: Fail logic
+                    jmp .check_line_loop
+
+                ; If line failed
+                .line_failure:
+                    ; Add to failure count and check next line
+                    mov al, [rbp-40]
+                    add al, 1
+                    mov [rbp-40], al
+                    jmp .check_line_loop_exit
+
+                ; If line passed
+                .line_pass:
+                    ; Add to pass count and check next line
+                    mov al, [rbp-32]
+                    add al, 1
+                    mov [rbp-32], al
+                    jmp .check_line_loop_exit
+
+                ; Exit point for check_line_loop
+                .check_line_loop_exit:
 
 
 
@@ -117,6 +168,15 @@ _start:
             mov r11, [rbp-16]  ; Move file size to R11
             cmp r10, r11       ; If offset is less than file size then
             jb .read_file_loop ; Read the next line, otherwise continue
+    
+    ; Dump pass fail count
+    mov rax, 1
+    mov rdi, 1
+    mov rbx, rbp
+    sub rbx, 32 ;32 is line pass; 40 is fail
+    mov rsi, rbx
+    mov rdx, 1
+    syscall
 
 
 
