@@ -10,7 +10,16 @@ Map some memory and load the file:
     (8-15) File size (in bytes)
     (16-23) Pointer to the file in memory
 
-Unmap the memory for the input file:
+Loop through file:
+    (0-7) File descriptor
+    (8-15) File size (in bytes)
+    (16-23) Pointer to the file in memory
+    (24-31) # of safe reports
+    (32-39) # of unsafe reports
+    (40-47) Reading offset
+    (48-55) Line contents (8 nums)
+
+Unmap the memory for the input file: // rsp brought back 8 bytes as of now
     (0-7) File descriptor
     (8-15) File size (in bytes)
 

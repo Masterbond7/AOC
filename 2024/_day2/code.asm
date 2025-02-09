@@ -59,13 +59,62 @@ _start:
 
 
 
-    ; Dump the first 16 bytes
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, [rbp-24]
-    mov rdx, 16
-    syscall
+    ; Loop through file
+    add rsp, 32 ; 8b safe#, 8b unsafe#, and 8 to load line, 8 for offset
+    mov qword [rbp-32], 0 ; Zero # of safe reports (rbp-32)
+    mov qword [rbp-40], 0 ; Zero # of unsafe reports (rbp-40)
+    mov qword [rbp-48], 0 ; Zero Reading offset (rbp-48)
+    .read_file_loop:
+        mov qword [rbp-56], 0 ; Zero line contents (rbp-56)
+        mov r12, 0            ; Zero line contents index
 
+        ; Loop to read the chars in each line
+        .read_line_loop:
+            ; Get a char
+            mov rax, [rbp-24]     ; Get pointer to file
+            add rax, [rbp-48]     ; Add offset
+            mov dil, [rax]        ; Copy char from A into DI
+            add qword [rbp-48], 1 ; Add one to reading offset
+
+            cmp dil, 0x20 ; If char is space
+            je .read_line_loop_space
+
+            cmp dil, 0x0A ; If char is new line 
+            je .read_line_loop_newl
+
+            ; If not space or newl, parse char (->RDI) to integer (RAX->)
+            movzx rax, byte [rbp-56+r12] ; Set RAX to current line_contents[r12]
+            mov rdx, 0                   ; Zero RDX
+            mov rbx, 10                  ; Set RBX=10 (multiply by 10)
+            mul rbx                      ; Multiply to make room for next value
+            mov byte [rbp-56+r12], al    ; Move multiplied result back
+
+            movzx rdi, dil            ; Copy over char to DI
+            call char_to_int          ; Convert char to int
+            add al, byte[rbp-56+r12]  ; Add old result (for multi digit nums)
+            mov byte [rbp-56+r12], al ; Copy ans from A to line_contents[r12]
+            jmp .read_line_loop       ; Continue reading line
+
+            .read_line_loop_space:
+            inc r12                   ; Increment line contents index
+            jmp .read_line_loop ; Continue reading line
+
+            .read_line_loop_newl:
+            ; Do stuff like print line contents
+            mov rax, 1
+            mov rdi, 1
+            mov rbx, rbp
+            sub rbx, 56 ;56 is line contents; 48 is reading offset
+            mov rsi, rbx
+            mov rdx, 8
+            syscall
+
+            mov r10, [rbp-48]
+            mov r11, [rbp-16]
+            cmp r10, r11 ; If offset is less than file size
+            jb .read_file_loop     ; Read next line, otherwise, continue
+
+    
 
 
     ; Unmap the memory for the input file
@@ -78,6 +127,7 @@ _start:
     jl error_exit ; Then jump to error_exit
 
     mov qword [rbp-24], 0 ; Otherwise, remove file pointer
+    add rsp, 8            ; Free 8 the bytes from stack
 
 
 
@@ -95,6 +145,28 @@ _start:
     mov rax, 60
     mov rdi, 0
     syscall
+
+
+
+; Function to convert char ADDR (->RDI) to integer (RAX->)
+char_to_int:
+    mov rax, 0    ; Zero result
+
+    cmp rdi, 0x30 ; If less than '0'
+    jb .exit_err  ; Exit with error
+    cmp rdi, 0x39 ; If greater than '9'
+    jg .exit_err  ; Exit with error
+
+    ; Otherwise, convert char to int and add to result
+    sub rdi, 0x30 ; Char - '0'
+    add rax, rdi  ; Set result
+    ret           ; Return
+
+    ; Exit with error code 255
+    .exit_err:
+        mov rax, 60
+        mov rdi, 255
+        syscall
 
 
 
